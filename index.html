@@ -4,89 +4,138 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ultimate Tester 3000 V7</title>
+<title>Ultimate Tester 3000 V7 Beta</title>
 <style>
+* { box-sizing: border-box; }
+
 body {
-  background: #080c1c;
+  background: #080d20;
   color: white;
   font-family: Arial, sans-serif;
   text-align: center;
   padding: 15px;
 }
-h1 { color: #00f5ff; }
+
+h1 {
+  color: cyan;
+  text-shadow: 0 0 18px cyan;
+}
+
 .panel {
-  background: #17203a;
-  padding: 20px;
-  border-radius: 16px;
-  margin: 15px auto;
-  max-width: 650px;
+  background: #172440;
+  max-width: 500px;
+  margin: 20px auto;
+  padding: 22px;
+  border-radius: 20px;
 }
+
 #status { color: orange; }
-#buttons {
+
+#stick {
+  width: 220px;
+  height: 220px;
+  border: 5px solid cyan;
+  border-radius: 50%;
+  margin: 20px auto;
+  position: relative;
+  background:
+    linear-gradient(transparent 49%, #344866 50%, transparent 51%),
+    linear-gradient(90deg, transparent 49%, #344866 50%, transparent 51%),
+    #10182d;
+}
+
+#dot {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: #00ffbb;
+  box-shadow: 0 0 25px #00ffbb;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.buttons {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+}
+
+.testbutton {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: #35415c;
+  border: 4px solid #73809d;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  place-items: center;
+  font-size: 35px;
+  font-weight: bold;
+  transition: background 0.08s, box-shadow 0.08s;
 }
-.button {
-  background: #303a55;
-  border: 2px solid #667;
-  padding: 16px 4px;
-  border-radius: 10px;
-}
+
 .active {
-  background: #00ff99;
+  background: #00ff88;
   color: black;
-  box-shadow: 0 0 22px #00ff99;
+  box-shadow: 0 0 35px #00ff88;
 }
-.axis { margin: 12px; }
-meter { width: 85%; }
-#last { color: #00f5ff; font-size: 22px; }
+
+button {
+  padding: 15px 25px;
+  font-size: 18px;
+  border-radius: 12px;
+  background: cyan;
+  color: black;
+  font-weight: bold;
+  cursor: pointer;
+}
 </style>
 </head>
 <body>
 
 <h1>⚡ ULTIMATE TESTER 3000 ⚡</h1>
-<h2>VERSION 7</h2>
+<h2>VERSION 7 BETA</h2>
 
 <div class="panel">
-<h2 id="status">Waiting for controller...</h2>
-<p>Connect your Bluetooth controller, then press a button.</p>
-<button onclick="start()">START TESTER</button>
+  <h2 id="status">Waiting for controller...</h2>
+  <button id="start">START TESTER</button>
 </div>
 
 <div class="panel">
-<h2>🎮 BUTTON TEST</h2>
-<div id="buttons"></div>
+  <h2>🕹️ JOYSTICK</h2>
+  <div id="stick">
+    <div id="dot"></div>
+  </div>
+  <p id="movement">Joystick centered</p>
 </div>
 
 <div class="panel">
-<h2>🕹️ JOYSTICK AXES</h2>
-<div id="axes"></div>
-</div>
-
-<div class="panel">
-<h2>LAST BUTTON PRESSED</h2>
-<div id="last">None yet</div>
+  <h2>🎮 BUTTON TEST</h2>
+  <div class="buttons">
+    <div class="testbutton" id="a">A</div>
+    <div class="testbutton" id="b">B</div>
+  </div>
+  <p id="last">Press a button!</p>
 </div>
 
 <script>
-const buttons = document.getElementById("buttons");
-const axes = document.getElementById("axes");
 const statusText = document.getElementById("status");
+const dot = document.getElementById("dot");
+const a = document.getElementById("a");
+const b = document.getElementById("b");
 const last = document.getElementById("last");
+const movement = document.getElementById("movement");
 
-for (let i = 0; i < 32; i++) {
-  const b = document.createElement("div");
-  b.className = "button";
-  b.id = "btn" + i;
-  b.textContent = "Button " + i;
-  buttons.appendChild(b);
-}
+let running = false;
+let previousA = false;
+let previousB = false;
 
-function start() {
-  statusText.textContent = "Looking for controller...";
+document.getElementById("start").onclick = () => {
+  if (running) return;
+  running = true;
   requestAnimationFrame(update);
-}
+};
 
 function update() {
   const pads = navigator.getGamepads
@@ -96,30 +145,49 @@ function update() {
 
   if (pad) {
     statusText.textContent = "✅ CONTROLLER CONNECTED";
-    statusText.style.color = "#00ff99";
+    statusText.style.color = "#00ff88";
 
-    for (let i = 0; i < 32; i++) {
-      const element = document.getElementById("btn" + i);
-      const pressed = pad.buttons[i]?.pressed || false;
-      element.classList.toggle("active", pressed);
-      if (pressed) last.textContent = "BUTTON " + i;
+    const pressedA = !!pad.buttons[0]?.pressed;
+    const pressedB = !!pad.buttons[1]?.pressed;
+
+    a.classList.toggle("active", pressedA);
+    b.classList.toggle("active", pressedB);
+
+    if (pressedA && !previousA) {
+      last.textContent = "A PRESSED!";
     }
 
-    axes.innerHTML = "";
-    pad.axes.forEach((value, i) => {
-      const div = document.createElement("div");
-      div.className = "axis";
-      div.textContent = "Axis " + i + ": " + value.toFixed(3);
-      const meter = document.createElement("meter");
-      meter.min = -1;
-      meter.max = 1;
-      meter.value = value;
-      div.appendChild(meter);
-      axes.appendChild(div);
-    });
+    if (pressedB && !previousB) {
+      last.textContent = "B PRESSED!";
+    }
+
+    previousA = pressedA;
+    previousB = pressedB;
+
+    const x = pad.axes[0] || 0;
+    const y = pad.axes[1] || 0;
+
+    dot.style.left = (50 + x * 35) + "%";
+    dot.style.top = (50 + y * 35) + "%";
+
+    movement.textContent =
+      Math.abs(x) < 0.1 && Math.abs(y) < 0.1
+      ? "Joystick centered"
+      : "Joystick moving!";
+
   } else {
     statusText.textContent = "Waiting for controller...";
     statusText.style.color = "orange";
+
+    a.classList.remove("active");
+    b.classList.remove("active");
+
+    dot.style.left = "50%";
+    dot.style.top = "50%";
+
+    movement.textContent = "Joystick centered";
+    previousA = false;
+    previousB = false;
   }
 
   requestAnimationFrame(update);
